@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ai-executives-website",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3000", "/Users/rasmusherning/Documents/ai-executives-website"],
+      "port": 3000
+    }
+  ]
+}
