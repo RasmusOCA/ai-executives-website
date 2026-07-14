@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Login | AI Executives</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #000000;
+      --white: #ffffff;
+      --blue: #1a6edb;
+      --grey-light: #f7f7f7;
+      --border-grey: #e8e8e8;
+      --font: 'Inter', sans-serif;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--black);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 72px;
+      background: var(--black);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .nav__logo img { height: 34px; width: auto; display: block; }
+    .nav__back {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .nav__back:hover { color: var(--white); }
+
+    /* Main */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-card__eyebrow {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 16px;
+    }
+
+    .login-card h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    .login-card__sub {
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 15px 28px;
+      background: var(--white);
+      color: var(--black);
+      border: none;
+      border-radius: 999px;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .login-btn:hover { opacity: 0.88; }
+
+    .login-card__note {
+      margin-top: 24px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 28px 40px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      justify-content: center;
+    }
+    .footer p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.25);
+    }
+
+    @media (max-width: 600px) {
+      .nav { padding: 0 20px; }
+      .login-card h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="index.html" class="nav__logo">
+      <img src="images/logo.png" alt="AI Executives">
+    </a>
+    <a href="index.html" class="nav__back">
+      ← Back to site
+    </a>
+  </nav>
+
+  <main>
+    <div class="login-card">
+      <span class="login-card__eyebrow">Member access</span>
+      <h1>Welcome back.</h1>
+      <p class="login-card__sub">Sign in with your email to access your AI training materials.</p>
+      <button class="login-btn" id="open-login">Sign in to your account</button>
+      <p class="login-card__note">Don't have access yet? Contact Casper at<br><strong style="color:rgba(255,255,255,0.5);">guldager@aiexecutives.dk</strong></p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Copyright AI Executives 2026. All rights reserved.</p>
+  </footer>
+
+  <script>
+    netlifyIdentity.on('init', user => {
+      if (user) {
+        window.location.href = '/members.html';
+      }
+    });
+
+    netlifyIdentity.on('login', () => {
+      window.location.href = '/members.html';
+    });
+
+    document.getElementById('open-login').addEventListener('click', () => {
+      netlifyIdentity.open('login');
+    });
+  </script>
+
+</body>
+</html>
