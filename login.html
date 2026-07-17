@@ -9,14 +9,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gotrue-js@0.9.29/dist/gotrue.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --black: #000000;
       --white: #ffffff;
       --blue: #1a6edb;
-      --grey-light: #f7f7f7;
       --border-grey: #e8e8e8;
       --font: 'Inter', sans-serif;
     }
@@ -31,7 +30,6 @@
     }
     a { text-decoration: none; color: inherit; }
 
-    /* Nav */
     .nav {
       display: flex;
       align-items: center;
@@ -44,17 +42,13 @@
     }
     .nav__logo img { height: 34px; width: auto; display: block; }
     .nav__back {
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 13px; font-weight: 500;
       color: rgba(255,255,255,0.5);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 6px;
       transition: color 0.2s;
     }
     .nav__back:hover { color: var(--white); }
 
-    /* Main */
     main {
       flex: 1;
       display: flex;
@@ -63,73 +57,98 @@
       padding: 60px 20px;
     }
 
-    .login-card {
-      width: 100%;
-      max-width: 420px;
-    }
+    .login-card { width: 100%; max-width: 420px; }
 
     .login-card__eyebrow {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--blue);
-      margin-bottom: 16px;
+      display: block; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 16px;
     }
 
     .login-card h1 {
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
+      font-size: 32px; font-weight: 800;
+      letter-spacing: -0.02em; line-height: 1.1;
       margin-bottom: 12px;
     }
 
     .login-card__sub {
-      font-size: 15px;
-      color: rgba(255,255,255,0.55);
-      line-height: 1.6;
-      margin-bottom: 40px;
+      font-size: 15px; color: rgba(255,255,255,0.55);
+      line-height: 1.6; margin-bottom: 36px;
+    }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.6); margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%; padding: 14px 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      font-family: var(--font); font-size: 15px;
+      color: var(--white);
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+    .form-group input:focus {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.09);
     }
 
     .login-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      padding: 15px 28px;
-      background: var(--white);
-      color: var(--black);
-      border: none;
-      border-radius: 999px;
-      font-family: var(--font);
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 15px 28px; margin-top: 8px;
+      background: var(--white); color: var(--black);
+      border: none; border-radius: 999px;
+      font-family: var(--font); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
     }
     .login-btn:hover { opacity: 0.88; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      display: none; margin-top: 16px; padding: 14px 18px;
+      background: rgba(220, 50, 50, 0.12);
+      border: 1px solid rgba(220, 50, 50, 0.3);
+      border-radius: 10px;
+      font-size: 14px; color: #ff7070; line-height: 1.5;
+    }
+    .error-msg.visible { display: block; }
+
+    .success-msg {
+      display: none; margin-top: 16px; padding: 14px 18px;
+      background: rgba(30, 180, 100, 0.12);
+      border: 1px solid rgba(30, 180, 100, 0.3);
+      border-radius: 10px;
+      font-size: 14px; color: #5de0a0; line-height: 1.5;
+    }
+    .success-msg.visible { display: block; }
 
     .login-card__note {
-      margin-top: 24px;
-      font-size: 13px;
+      margin-top: 28px; font-size: 13px;
       color: rgba(255,255,255,0.3);
-      text-align: center;
-      line-height: 1.6;
+      text-align: center; line-height: 1.6;
     }
 
-    /* Footer */
+    .forgot-link {
+      display: block; text-align: right;
+      font-size: 13px; color: rgba(255,255,255,0.35);
+      margin-top: 6px; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .forgot-link:hover { color: rgba(255,255,255,0.7); }
+
     .footer {
       padding: 28px 40px;
       border-top: 1px solid rgba(255,255,255,0.08);
-      display: flex;
-      justify-content: center;
+      display: flex; justify-content: center;
     }
-    .footer p {
-      font-size: 13px;
-      color: rgba(255,255,255,0.25);
-    }
+    .footer p { font-size: 13px; color: rgba(255,255,255,0.25); }
 
     @media (max-width: 600px) {
       .nav { padding: 0 20px; }
@@ -143,18 +162,68 @@
     <a href="index.html" class="nav__logo">
       <img src="images/logo.png" alt="AI Executives">
     </a>
-    <a href="index.html" class="nav__back">
-      ← Back to site
-    </a>
+    <a href="index.html" class="nav__back">← Back to site</a>
   </nav>
 
   <main>
-    <div class="login-card">
+    <div class="login-card" id="login-view">
       <span class="login-card__eyebrow">Member access</span>
       <h1>Welcome back.</h1>
       <p class="login-card__sub">Sign in with your email to access your AI training materials.</p>
-      <button class="login-btn" id="open-login">Sign in to your account</button>
-      <p class="login-card__note">Don't have access yet? Contact Casper at<br><strong style="color:rgba(255,255,255,0.5);">guldager@aiexecutives.dk</strong></p>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+          <span class="forgot-link" id="forgot-link">Forgot password?</span>
+        </div>
+        <button type="submit" class="login-btn" id="login-btn">Sign in</button>
+        <div class="error-msg" id="login-error"></div>
+      </form>
+
+      <p class="login-card__note">Don't have access yet? Contact Casper at<br>
+        <strong style="color:rgba(255,255,255,0.5);">guldager@aiexecutives.dk</strong>
+      </p>
+    </div>
+
+    <!-- Set password view (for invite & recovery tokens) -->
+    <div class="login-card" id="set-password-view" style="display:none;">
+      <span class="login-card__eyebrow">Member access</span>
+      <h1 id="set-password-title">Set your password.</h1>
+      <p class="login-card__sub" id="set-password-sub">Choose a password to activate your account.</p>
+
+      <form id="set-password-form" novalidate>
+        <div class="form-group">
+          <label for="new-password">New password</label>
+          <input type="password" id="new-password" placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="login-btn" id="set-password-btn">Activate account</button>
+        <div class="error-msg" id="set-password-error"></div>
+        <div class="success-msg" id="set-password-success"></div>
+      </form>
+    </div>
+
+    <!-- Forgot password view -->
+    <div class="login-card" id="forgot-view" style="display:none;">
+      <span class="login-card__eyebrow">Member access</span>
+      <h1>Reset password.</h1>
+      <p class="login-card__sub">Enter your email and we'll send you a reset link.</p>
+
+      <form id="forgot-form" novalidate>
+        <div class="form-group">
+          <label for="reset-email">Email address</label>
+          <input type="email" id="reset-email" placeholder="your@email.com" autocomplete="email" required>
+        </div>
+        <button type="submit" class="login-btn" id="reset-btn">Send reset link</button>
+        <div class="error-msg" id="reset-error"></div>
+        <div class="success-msg" id="reset-success"></div>
+      </form>
+
+      <p class="login-card__note" style="cursor:pointer;" id="back-to-login">← Back to sign in</p>
     </div>
   </main>
 
@@ -163,18 +232,119 @@
   </footer>
 
   <script>
-    netlifyIdentity.on('init', user => {
-      if (user) {
+    const auth = new GoTrue({
+      APIUrl: 'https://aiexecutives.dk/.netlify/identity',
+      setCookie: true,
+    });
+
+    // If already logged in, go straight to members
+    const existing = auth.currentUser();
+    if (existing) window.location.href = '/members.html';
+
+    // Check for invite or recovery token in URL hash
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace('#', '?'));
+    const inviteToken = params.get('invite_token');
+    const recoveryToken = params.get('recovery_token');
+
+    if (inviteToken || recoveryToken) {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('set-password-view').style.display = 'block';
+      if (recoveryToken) {
+        document.getElementById('set-password-title').textContent = 'Choose a new password.';
+        document.getElementById('set-password-sub').textContent = 'Enter a new password for your account.';
+        document.getElementById('set-password-btn').textContent = 'Update password';
+      }
+    }
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errorEl = document.getElementById('login-error');
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      errorEl.classList.remove('visible');
+
+      try {
+        await auth.login(email, password, true);
         window.location.href = '/members.html';
+      } catch (err) {
+        errorEl.textContent = 'Incorrect email or password. Please try again.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
       }
     });
 
-    netlifyIdentity.on('login', () => {
-      window.location.href = '/members.html';
+    // Set password form (invite + recovery)
+    document.getElementById('set-password-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('set-password-btn');
+      const errorEl = document.getElementById('set-password-error');
+      const successEl = document.getElementById('set-password-success');
+      const password = document.getElementById('new-password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      errorEl.classList.remove('visible');
+
+      try {
+        if (inviteToken) {
+          await auth.acceptInvite(inviteToken, password, true);
+        } else if (recoveryToken) {
+          await auth.recover(recoveryToken, true);
+          const user = auth.currentUser();
+          await user.update({ password });
+        }
+        successEl.textContent = 'All done! Taking you to your training materials…';
+        successEl.classList.add('visible');
+        setTimeout(() => window.location.href = '/members.html', 1500);
+      } catch (err) {
+        errorEl.textContent = 'Something went wrong. Please try again or contact Casper.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = inviteToken ? 'Activate account' : 'Update password';
+      }
     });
 
-    document.getElementById('open-login').addEventListener('click', () => {
-      netlifyIdentity.open('login');
+    // Forgot password
+    document.getElementById('forgot-link').addEventListener('click', () => {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('forgot-view').style.display = 'block';
+    });
+
+    document.getElementById('back-to-login').addEventListener('click', () => {
+      document.getElementById('forgot-view').style.display = 'none';
+      document.getElementById('login-view').style.display = 'block';
+    });
+
+    document.getElementById('forgot-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('reset-btn');
+      const errorEl = document.getElementById('reset-error');
+      const successEl = document.getElementById('reset-success');
+      const email = document.getElementById('reset-email').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      errorEl.classList.remove('visible');
+      successEl.classList.remove('visible');
+
+      try {
+        await auth.requestPasswordRecovery(email);
+        successEl.textContent = 'Reset link sent. Check your inbox.';
+        successEl.classList.add('visible');
+        btn.textContent = 'Sent';
+      } catch (err) {
+        errorEl.textContent = 'Could not send reset link. Check the email address and try again.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Send reset link';
+      }
     });
   </script>
 
