@@ -9,8 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <script>window.__inviteToken=(function(){var p=new URLSearchParams(location.hash.substring(1));return{invite:p.get('invite_token'),recovery:p.get('recovery_token')};}());</script>
-  <script src="https://cdn.jsdelivr.net/npm/gotrue-js@0.9.29/dist/gotrue.js"></script>
+  <script>window.__tokens=(function(){var p=new URLSearchParams(location.hash.substring(1));return{invite:p.get('invite_token'),recovery:p.get('recovery_token')};}());</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -233,14 +232,27 @@
   </footer>
 
   <script>
-    const auth = new GoTrue({
-      APIUrl: 'https://aiexecutives.dk/.netlify/identity',
-      setCookie: true,
-    });
+    const API = 'https://aiexecutives.dk/.netlify/identity';
+    const SESSION_KEY = 'aie_session';
 
-    // Tokens were captured in <head> before GoTrue could clear the hash
-    const inviteToken = window.__inviteToken.invite;
-    const recoveryToken = window.__inviteToken.recovery;
+    function saveSession(data) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        access_token: data.access_token,
+        email: data.user ? data.user.email : data.email,
+        expires_at: Date.now() + (data.expires_in || 3600) * 1000
+      }));
+    }
+
+    function getSession() {
+      try {
+        const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+        if (s && s.expires_at > Date.now()) return s;
+      } catch(e) {}
+      return null;
+    }
+
+    const inviteToken = window.__tokens.invite;
+    const recoveryToken = window.__tokens.recovery;
 
     if (inviteToken || recoveryToken) {
       document.getElementById('login-view').style.display = 'none';
@@ -251,14 +263,10 @@
         document.getElementById('set-password-btn').textContent = 'Update password';
       }
     } else {
-      // Only redirect to members if already logged in and no tokens present
-      try {
-        const existing = auth.currentUser();
-        if (existing) window.location.href = '/members.html';
-      } catch (e) {}
+      if (getSession()) window.location.href = '/members.html';
     }
 
-    // Login form
+    // Login
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
@@ -271,7 +279,13 @@
       errorEl.classList.remove('visible');
 
       try {
-        await auth.login(email, password, true);
+        const resp = await fetch(`${API}/token?grant_type=password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!resp.ok) throw new Error();
+        saveSession(await resp.json());
         window.location.href = '/members.html';
       } catch (err) {
         errorEl.textContent = 'Incorrect email or password. Please try again.';
@@ -281,7 +295,7 @@
       }
     });
 
-    // Set password form (invite + recovery)
+    // Set password (invite + recovery)
     document.getElementById('set-password-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('set-password-btn');
@@ -294,12 +308,46 @@
       errorEl.classList.remove('visible');
 
       try {
+        let data;
         if (inviteToken) {
-          await auth.acceptInvite(inviteToken, password, true);
+          const resp = await fetch(`${API}/user`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${inviteToken}`
+            },
+            body: JSON.stringify({ password })
+          });
+          if (!resp.ok) throw new Error(await resp.text());
+          data = await resp.json();
+          if (data.access_token) {
+            saveSession(data);
+          } else {
+            // acceptInvite returned user but no session — log in manually
+            const lr = await fetch(`${API}/token?grant_type=password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: data.email, password })
+            });
+            if (!lr.ok) throw new Error();
+            saveSession(await lr.json());
+          }
         } else if (recoveryToken) {
-          await auth.recover(recoveryToken, true);
-          const user = auth.currentUser();
-          await user.update({ password });
+          const resp = await fetch(`${API}/verify?type=recovery&token=${recoveryToken}`, {
+            method: 'GET'
+          });
+          if (!resp.ok) throw new Error();
+          const session = await resp.json();
+          const upd = await fetch(`${API}/user`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ password })
+          });
+          if (!upd.ok) throw new Error();
+          saveSession(session);
         }
         successEl.textContent = 'All done! Taking you to your training materials…';
         successEl.classList.add('visible');
@@ -336,7 +384,12 @@
       successEl.classList.remove('visible');
 
       try {
-        await auth.requestPasswordRecovery(email);
+        const resp = await fetch(`${API}/recover`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (!resp.ok) throw new Error();
         successEl.textContent = 'Reset link sent. Check your inbox.';
         successEl.classList.add('visible');
         btn.textContent = 'Sent';
