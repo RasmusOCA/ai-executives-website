@@ -311,10 +311,8 @@
         let data;
         if (inviteToken) {
           // Step 1: exchange invite token for a JWT session
-          const verifyResp = await fetch(`${API}/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'invite', token: inviteToken })
+          const verifyResp = await fetch(`${API}/verify?type=invite&token=${encodeURIComponent(inviteToken)}`, {
+            method: 'GET'
           });
           if (!verifyResp.ok) {
             const errText = await verifyResp.text();
