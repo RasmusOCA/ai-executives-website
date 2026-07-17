@@ -237,13 +237,9 @@
       setCookie: true,
     });
 
-    // If already logged in, go straight to members
-    const existing = auth.currentUser();
-    if (existing) window.location.href = '/members.html';
-
-    // Check for invite or recovery token in URL hash
+    // Check for invite or recovery token FIRST
     const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace('#', '?'));
+    const params = new URLSearchParams(hash.substring(1));
     const inviteToken = params.get('invite_token');
     const recoveryToken = params.get('recovery_token');
 
@@ -255,6 +251,12 @@
         document.getElementById('set-password-sub').textContent = 'Enter a new password for your account.';
         document.getElementById('set-password-btn').textContent = 'Update password';
       }
+    } else {
+      // Only redirect to members if already logged in and no tokens present
+      try {
+        const existing = auth.currentUser();
+        if (existing) window.location.href = '/members.html';
+      } catch (e) {}
     }
 
     // Login form
