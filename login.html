@@ -310,26 +310,39 @@
       try {
         let data;
         if (inviteToken) {
-          const resp = await fetch(`${API}/user`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${inviteToken}`
-            },
-            body: JSON.stringify({ password })
+          // Try GoTrue verify endpoint first
+          let resp = await fetch(`${API}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'invite', token: inviteToken, password })
           });
-          if (!resp.ok) throw new Error(await resp.text());
+          if (!resp.ok) {
+            // Fallback: PUT /user with invite token as Bearer
+            resp = await fetch(`${API}/user`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${inviteToken}`
+              },
+              body: JSON.stringify({ password })
+            });
+          }
+          if (!resp.ok) {
+            const errText = await resp.text();
+            console.error('Invite error:', resp.status, errText);
+            throw new Error(errText);
+          }
           data = await resp.json();
           if (data.access_token) {
             saveSession(data);
-          } else {
-            // acceptInvite returned user but no session — log in manually
+          } else if (data.email) {
+            // Got user object without session — log in with new password
             const lr = await fetch(`${API}/token?grant_type=password`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: data.email, password })
             });
-            if (!lr.ok) throw new Error();
+            if (!lr.ok) throw new Error(await lr.text());
             saveSession(await lr.json());
           }
         } else if (recoveryToken) {
