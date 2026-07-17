@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <script>window.__inviteToken=(function(){var p=new URLSearchParams(location.hash.substring(1));return{invite:p.get('invite_token'),recovery:p.get('recovery_token')};}());</script>
   <script src="https://cdn.jsdelivr.net/npm/gotrue-js@0.9.29/dist/gotrue.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -237,11 +238,9 @@
       setCookie: true,
     });
 
-    // Check for invite or recovery token FIRST
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    const inviteToken = params.get('invite_token');
-    const recoveryToken = params.get('recovery_token');
+    // Tokens were captured in <head> before GoTrue could clear the hash
+    const inviteToken = window.__inviteToken.invite;
+    const recoveryToken = window.__inviteToken.recovery;
 
     if (inviteToken || recoveryToken) {
       document.getElementById('login-view').style.display = 'none';
