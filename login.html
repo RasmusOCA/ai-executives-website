@@ -310,30 +310,33 @@
       try {
         let data;
         if (inviteToken) {
-          // Accept invite: PUT /user with invite_token as query param
-          const inviteResp = await fetch(`${API}/user?invite_token=${encodeURIComponent(inviteToken)}`, {
-            method: 'PUT',
+          // Step 1: verify invite token (Netlify treats invite as signup confirmation)
+          const verifyResp = await fetch(`${API}/verify`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
+            body: JSON.stringify({ type: 'signup', token: inviteToken })
           });
-          if (!inviteResp.ok) {
-            const errText = await inviteResp.text();
-            console.error('Invite error:', inviteResp.status, errText);
+          if (!verifyResp.ok) {
+            const errText = await verifyResp.text();
+            console.error('Verify error:', verifyResp.status, errText);
             throw new Error(errText);
           }
-          const inviteData = await inviteResp.json();
-          if (inviteData.access_token) {
-            saveSession(inviteData);
-          } else {
-            // No session returned — try logging in with new password
-            const lr = await fetch(`${API}/token?grant_type=password`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: inviteData.email, password })
-            });
-            if (!lr.ok) throw new Error(await lr.text());
-            saveSession(await lr.json());
+          const session = await verifyResp.json();
+          // Step 2: set password with the JWT we got back
+          const updateResp = await fetch(`${API}/user`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ password })
+          });
+          if (!updateResp.ok) {
+            const errText = await updateResp.text();
+            console.error('Update error:', updateResp.status, errText);
+            throw new Error(errText);
           }
+          saveSession(session);
         } else if (recoveryToken) {
           const resp = await fetch(`${API}/verify?type=recovery&token=${recoveryToken}`, {
             method: 'GET'
