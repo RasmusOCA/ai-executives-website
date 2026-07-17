@@ -314,7 +314,7 @@
           const verifyResp = await fetch(`${API}/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'signup', token: inviteToken })
+            body: JSON.stringify({ type: 'signup', token: inviteToken, password })
           });
           if (!verifyResp.ok) {
             const errText = await verifyResp.text();
