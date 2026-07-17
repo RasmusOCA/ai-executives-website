@@ -338,21 +338,17 @@
           }
           saveSession(session);
         } else if (recoveryToken) {
-          const resp = await fetch(`${API}/verify?type=recovery&token=${recoveryToken}`, {
-            method: 'GET'
+          const resp = await fetch(`${API}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'recovery', token: recoveryToken, password })
           });
-          if (!resp.ok) throw new Error();
-          const session = await resp.json();
-          const upd = await fetch(`${API}/user`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ password })
-          });
-          if (!upd.ok) throw new Error();
-          saveSession(session);
+          if (!resp.ok) {
+            const errText = await resp.text();
+            console.error('Recovery error:', resp.status, errText);
+            throw new Error(errText);
+          }
+          saveSession(await resp.json());
         }
         successEl.textContent = 'All done! Taking you to your training materials…';
         successEl.classList.add('visible');
