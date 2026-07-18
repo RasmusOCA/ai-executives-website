@@ -279,10 +279,10 @@
       errorEl.classList.remove('visible');
 
       try {
-        const resp = await fetch(`${API}/token?grant_type=password`, {
+        const resp = await fetch(`${API}/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ grant_type: 'password', email, password })
         });
         if (!resp.ok) {
           const errText = await resp.text();
@@ -341,10 +341,10 @@
             saveSession(inviteData);
           } else {
             // No session — try logging in directly
-            const lr = await fetch(`${API}/token?grant_type=password`, {
+            const lr = await fetch(`${API}/token`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: userEmail, password })
+              body: JSON.stringify({ grant_type: 'password', email: userEmail, password })
             });
             if (!lr.ok) { console.error('Auto-login error:', await lr.text()); throw new Error(); }
             saveSession(await lr.json());
