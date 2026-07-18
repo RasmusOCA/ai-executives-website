@@ -315,28 +315,31 @@
       try {
         let data;
         if (inviteToken) {
-          // Step 1: verify invite token to confirm account and get JWT
-          const verifyResp = await fetch(`${API}/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'invite', token: inviteToken, password })
-          });
-          if (!verifyResp.ok) {
-            const errText = await verifyResp.text();
-            console.error('Verify error:', verifyResp.status, errText);
-            throw new Error(errText);
-          }
-          const session = await verifyResp.json();
-          // Step 2: explicitly set password so it persists for future logins
-          await fetch(`${API}/user`, {
+          // Accept invite via query param (GoTrue's correct invite endpoint)
+          const inviteResp = await fetch(`${API}/user?invite_token=${encodeURIComponent(inviteToken)}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password })
           });
-          saveSession(session);
+          if (!inviteResp.ok) {
+            const errText = await inviteResp.text();
+            console.error('Invite error:', inviteResp.status, errText);
+            throw new Error(errText);
+          }
+          const inviteData = await inviteResp.json();
+          console.log('Invite success, access_token present:', !!inviteData.access_token, 'email:', inviteData.email || inviteData.user?.email);
+          if (inviteData.access_token) {
+            saveSession(inviteData);
+          } else {
+            // No session returned — log in immediately with new password
+            const lr = await fetch(`${API}/token?grant_type=password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: inviteData.email || inviteData.user?.email, password })
+            });
+            if (!lr.ok) { console.error('Auto-login error:', await lr.text()); throw new Error(); }
+            saveSession(await lr.json());
+          }
         } else if (recoveryToken) {
           const resp = await fetch(`${API}/verify`, {
             method: 'POST',
