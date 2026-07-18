@@ -284,10 +284,15 @@
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ grant_type: 'password', username: email, password })
         });
-        if (!resp.ok) throw new Error();
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error('Login error:', resp.status, errText);
+          throw new Error(errText);
+        }
         saveSession(await resp.json());
         window.location.href = '/members.html';
       } catch (err) {
+        console.error('Login catch:', err.message);
         errorEl.textContent = 'Incorrect email or password. Please try again.';
         errorEl.classList.add('visible');
         btn.disabled = false;
