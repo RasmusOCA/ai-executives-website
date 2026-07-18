@@ -327,15 +327,24 @@
             throw new Error(errText);
           }
           const inviteData = await inviteResp.json();
-          console.log('Invite success, access_token present:', !!inviteData.access_token, 'email:', inviteData.email || inviteData.user?.email);
-          if (inviteData.access_token) {
+          const accessToken = inviteData.access_token;
+          const userEmail = inviteData.email || inviteData.user?.email;
+          console.log('Invite response:', JSON.stringify({has_token: !!accessToken, email: userEmail}));
+          if (accessToken) {
+            // Explicitly persist the password so future logins work
+            const pwResp = await fetch(`${API}/user`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+              body: JSON.stringify({ password })
+            });
+            console.log('Password set response:', pwResp.status);
             saveSession(inviteData);
           } else {
-            // No session returned — log in immediately with new password
+            // No session — try logging in directly
             const lr = await fetch(`${API}/token?grant_type=password`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: inviteData.email || inviteData.user?.email, password })
+              body: JSON.stringify({ email: userEmail, password })
             });
             if (!lr.ok) { console.error('Auto-login error:', await lr.text()); throw new Error(); }
             saveSession(await lr.json());
