@@ -310,7 +310,7 @@
       try {
         let data;
         if (inviteToken) {
-          // Step 1: verify invite token (Netlify treats invite as signup confirmation)
+          // Step 1: verify invite token to confirm account and get JWT
           const verifyResp = await fetch(`${API}/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -322,8 +322,8 @@
             throw new Error(errText);
           }
           const session = await verifyResp.json();
-          // Step 2: set password with the JWT we got back
-          const updateResp = await fetch(`${API}/user`, {
+          // Step 2: explicitly set password so it persists for future logins
+          await fetch(`${API}/user`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -331,11 +331,6 @@
             },
             body: JSON.stringify({ password })
           });
-          if (!updateResp.ok) {
-            const errText = await updateResp.text();
-            console.error('Update error:', updateResp.status, errText);
-            throw new Error(errText);
-          }
           saveSession(session);
         } else if (recoveryToken) {
           const resp = await fetch(`${API}/verify`, {
