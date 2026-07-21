@@ -316,7 +316,7 @@
         let data;
         if (inviteToken) {
           // Accept invite via query param (GoTrue's correct invite endpoint)
-          const inviteResp = await fetch(`${API}/user?invite_token=${encodeURIComponent(inviteToken)}`, {
+          const inviteResp = await fetch(`${API}/user?token=${encodeURIComponent(inviteToken)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password })
