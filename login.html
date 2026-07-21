@@ -423,7 +423,18 @@
           body: JSON.stringify({ type: 'recovery', token: recoveryToken, password })
         });
         if (!resp.ok) throw new Error(await resp.text());
-        saveSession(await resp.json());
+        const data = await resp.json();
+
+        // Persist password so grant_type=password login works afterwards
+        if (data.access_token) {
+          await fetch(`${API}/user`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${data.access_token}` },
+            body: JSON.stringify({ password })
+          });
+        }
+
+        saveSession(data);
         successEl.textContent = 'Password updated! Taking you to your training materials…';
         successEl.classList.add('visible');
         setTimeout(() => window.location.href = '/members.html', 1200);
