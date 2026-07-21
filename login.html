@@ -113,6 +113,16 @@
     .login-btn:hover { opacity: 0.88; }
     .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    .link-btn {
+      display: block; width: 100%; padding: 14px 28px; margin-top: 12px;
+      background: transparent; color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
+      font-family: var(--font); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: border-color 0.2s, color 0.2s;
+      text-align: center;
+    }
+    .link-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--white); }
+
     .error-msg {
       display: none; margin-top: 16px; padding: 14px 18px;
       background: rgba(220, 50, 50, 0.12);
@@ -136,6 +146,24 @@
       color: rgba(255,255,255,0.3);
       text-align: center; line-height: 1.6;
     }
+
+    .forgot-link {
+      display: block; text-align: right;
+      font-size: 13px; color: rgba(255,255,255,0.35);
+      margin-top: 6px; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .forgot-link:hover { color: rgba(255,255,255,0.7); }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+    .divider span { font-size: 12px; color: rgba(255,255,255,0.25); }
 
     .footer {
       padding: 28px 40px;
@@ -161,28 +189,47 @@
 
   <main>
 
-    <!-- Login view: email-only magic link -->
+    <!-- Standard login: email + password -->
     <div class="login-card" id="login-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
       <h1>Welcome back.</h1>
-      <p class="login-card__sub">Enter your email and we'll send you a secure login link.</p>
+      <p class="login-card__sub">Sign in with your email and password.</p>
 
       <form id="login-form" novalidate>
         <div class="form-group">
           <label for="email">Email address</label>
           <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required>
         </div>
-        <button type="submit" class="login-btn" id="login-btn">Send login link</button>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+          <span class="forgot-link" id="forgot-link">Forgot password?</span>
+        </div>
+        <button type="submit" class="login-btn" id="login-btn">Sign in</button>
         <div class="error-msg" id="login-error"></div>
-        <div class="success-msg" id="login-success"></div>
       </form>
+
+      <div class="divider"><span>or</span></div>
+
+      <button class="link-btn" id="magic-link-toggle">Send me a login link instead</button>
+      <div id="magic-link-section" style="display:none; margin-top:16px;">
+        <form id="magic-form" novalidate>
+          <div class="form-group">
+            <label for="magic-email">Email address</label>
+            <input type="email" id="magic-email" placeholder="your@email.com" autocomplete="email" required>
+          </div>
+          <button type="submit" class="login-btn" id="magic-btn">Send login link</button>
+          <div class="error-msg" id="magic-error"></div>
+          <div class="success-msg" id="magic-success"></div>
+        </form>
+      </div>
 
       <p class="login-card__note">Don't have access yet? Contact Casper at<br>
         <strong style="color:rgba(255,255,255,0.5);">guldager@aiexecutives.dk</strong>
       </p>
     </div>
 
-    <!-- Invite view: activate account with password -->
+    <!-- Invite: activate account with password -->
     <div class="login-card" id="invite-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
       <h1>Activate your account.</h1>
@@ -199,12 +246,31 @@
       </form>
     </div>
 
-    <!-- Processing view: shown while auto-handling recovery token -->
+    <!-- Recovery: auto-processed, no form needed -->
     <div class="login-card" id="processing-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
       <h1>Logging you in…</h1>
       <p class="login-card__sub">Please wait a moment.</p>
       <div class="error-msg" id="processing-error"></div>
+    </div>
+
+    <!-- Forgot password -->
+    <div class="login-card" id="forgot-view" style="display:none;">
+      <span class="login-card__eyebrow">Member access</span>
+      <h1>Reset password.</h1>
+      <p class="login-card__sub">Enter your email and we'll send you a reset link.</p>
+
+      <form id="forgot-form" novalidate>
+        <div class="form-group">
+          <label for="reset-email">Email address</label>
+          <input type="email" id="reset-email" placeholder="your@email.com" autocomplete="email" required>
+        </div>
+        <button type="submit" class="login-btn" id="reset-btn">Send reset link</button>
+        <div class="error-msg" id="reset-error"></div>
+        <div class="success-msg" id="reset-success"></div>
+      </form>
+
+      <p class="login-card__note" style="cursor:pointer;" id="back-to-login">← Back to sign in</p>
     </div>
 
   </main>
@@ -238,8 +304,8 @@
       return null;
     }
 
-    function show(id) {
-      ['login-view','invite-view','processing-view'].forEach(v => {
+    function showView(id) {
+      ['login-view','invite-view','processing-view','forgot-view'].forEach(v => {
         document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
       });
     }
@@ -249,13 +315,13 @@
 
     async function init() {
       if (inviteToken) {
-        show('invite-view');
+        showView('invite-view');
         document.body.classList.add('ready');
         return;
       }
 
       if (recoveryToken) {
-        show('processing-view');
+        showView('processing-view');
         document.body.classList.add('ready');
         try {
           const resp = await fetch(`${API}/verify`, {
@@ -267,14 +333,14 @@
           saveSession(await resp.json());
           window.location.href = '/members.html';
         } catch(e) {
-          document.getElementById('processing-error').textContent = 'This login link has expired. Please request a new one from the login page.';
-          document.getElementById('processing-error').classList.add('visible');
-          setTimeout(() => { show('login-view'); }, 3000);
+          const el = document.getElementById('processing-error');
+          el.textContent = 'This link has expired. Return to login and request a new one.';
+          el.classList.add('visible');
+          setTimeout(() => showView('login-view'), 3000);
         }
         return;
       }
 
-      // No token — check existing session
       if (getSession()) { window.location.href = '/members.html'; return; }
 
       // Try refresh token for seamless re-login
@@ -296,13 +362,13 @@
         localStorage.removeItem(REFRESH_KEY);
       }
 
-      show('login-view');
+      showView('login-view');
       document.body.classList.add('ready');
     }
 
     init();
 
-    // Invite form
+    // Invite activation
     document.getElementById('invite-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('invite-btn');
@@ -315,24 +381,36 @@
       errorEl.classList.remove('visible');
 
       try {
-        const resp = await fetch(`${API}/verify`, {
+        const verifyResp = await fetch(`${API}/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'signup', token: inviteToken, password })
         });
-        if (!resp.ok) throw new Error(await resp.text());
-        const data = await resp.json();
+        if (!verifyResp.ok) throw new Error(await verifyResp.text());
+        const verifyData = await verifyResp.json();
 
-        // Explicitly persist password using the returned JWT
-        if (data.access_token) {
-          await fetch(`${API}/user`, {
+        // Persist password via authenticated PUT
+        if (verifyData.access_token) {
+          const pwResp = await fetch(`${API}/user`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${data.access_token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${verifyData.access_token}` },
             body: JSON.stringify({ password })
           });
+          const pwBody = await pwResp.text();
+          console.log('PUT /user status:', pwResp.status, pwBody);
+
+          // Verify password login works immediately
+          const email = verifyData.user?.email || verifyData.email;
+          const testResp = await fetch(`${API}/token?grant_type=password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const testBody = await testResp.text();
+          console.log('Password login test:', testResp.status, testBody);
         }
 
-        saveSession(data);
+        saveSession(verifyData);
         successEl.textContent = 'Account activated! Taking you to your training materials…';
         successEl.classList.add('visible');
         setTimeout(() => window.location.href = '/members.html', 1200);
@@ -344,13 +422,57 @@
       }
     });
 
-    // Login form (magic link)
+    // Standard login
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
       const errorEl = document.getElementById('login-error');
-      const successEl = document.getElementById('login-success');
-      const email = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      errorEl.classList.remove('visible');
+
+      try {
+        const resp = await fetch(`${API}/token?grant_type=password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error('Login error:', resp.status, errText);
+          throw new Error(errText);
+        }
+        saveSession(await resp.json());
+        window.location.href = '/members.html';
+      } catch(err) {
+        errorEl.innerHTML = 'Incorrect email or password.<br><span style="font-size:13px;opacity:0.8;">Forgot your password? Use <strong>"Send me a login link instead"</strong> below.</span>';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+
+    // Magic link toggle
+    document.getElementById('magic-link-toggle').addEventListener('click', () => {
+      const section = document.getElementById('magic-link-section');
+      const isVisible = section.style.display !== 'none';
+      section.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        const loginEmail = document.getElementById('email').value;
+        if (loginEmail) document.getElementById('magic-email').value = loginEmail;
+      }
+    });
+
+    // Magic link send
+    document.getElementById('magic-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('magic-btn');
+      const errorEl = document.getElementById('magic-error');
+      const successEl = document.getElementById('magic-success');
+      const email = document.getElementById('magic-email').value.trim();
 
       btn.disabled = true;
       btn.textContent = 'Sending…';
@@ -372,6 +494,40 @@
         errorEl.classList.add('visible');
         btn.disabled = false;
         btn.textContent = 'Send login link';
+      }
+    });
+
+    // Forgot password
+    document.getElementById('forgot-link').addEventListener('click', () => showView('forgot-view'));
+    document.getElementById('back-to-login').addEventListener('click', () => showView('login-view'));
+
+    document.getElementById('forgot-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('reset-btn');
+      const errorEl = document.getElementById('reset-error');
+      const successEl = document.getElementById('reset-success');
+      const email = document.getElementById('reset-email').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      errorEl.classList.remove('visible');
+      successEl.classList.remove('visible');
+
+      try {
+        const resp = await fetch(`${API}/recover`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (!resp.ok) throw new Error();
+        successEl.textContent = 'Reset link sent. Check your inbox.';
+        successEl.classList.add('visible');
+        btn.textContent = 'Sent';
+      } catch(e) {
+        errorEl.textContent = 'Could not send reset link. Check the email address and try again.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Send reset link';
       }
     });
   </script>
