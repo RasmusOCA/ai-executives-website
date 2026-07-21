@@ -246,12 +246,21 @@
       </form>
     </div>
 
-    <!-- Recovery: auto-processed, no form needed -->
-    <div class="login-card" id="processing-view" style="display:none;">
+    <!-- Recovery: set new password -->
+    <div class="login-card" id="set-password-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
-      <h1>Logging you in…</h1>
-      <p class="login-card__sub">Please wait a moment.</p>
-      <div class="error-msg" id="processing-error"></div>
+      <h1>Set your password.</h1>
+      <p class="login-card__sub">Choose a new password for your account.</p>
+
+      <form id="set-password-form" novalidate>
+        <div class="form-group">
+          <label for="new-password">New password</label>
+          <input type="password" id="new-password" placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="login-btn" id="set-password-btn">Update password</button>
+        <div class="error-msg" id="set-password-error"></div>
+        <div class="success-msg" id="set-password-success"></div>
+      </form>
     </div>
 
     <!-- Forgot password -->
@@ -305,7 +314,7 @@
     }
 
     function showView(id) {
-      ['login-view','invite-view','processing-view','forgot-view'].forEach(v => {
+      ['login-view','invite-view','set-password-view','forgot-view'].forEach(v => {
         document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
       });
     }
@@ -321,23 +330,8 @@
       }
 
       if (recoveryToken) {
-        showView('processing-view');
+        showView('set-password-view');
         document.body.classList.add('ready');
-        try {
-          const resp = await fetch(`${API}/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'recovery', token: recoveryToken })
-          });
-          if (!resp.ok) throw new Error(await resp.text());
-          saveSession(await resp.json());
-          window.location.href = '/members.html';
-        } catch(e) {
-          const el = document.getElementById('processing-error');
-          el.textContent = 'This link has expired. Return to login and request a new one.';
-          el.classList.add('visible');
-          setTimeout(() => showView('login-view'), 3000);
-        }
         return;
       }
 
@@ -419,6 +413,37 @@
         errorEl.classList.add('visible');
         btn.disabled = false;
         btn.textContent = 'Activate account';
+      }
+    });
+
+    // Recovery: set new password
+    document.getElementById('set-password-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('set-password-btn');
+      const errorEl = document.getElementById('set-password-error');
+      const successEl = document.getElementById('set-password-success');
+      const password = document.getElementById('new-password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      errorEl.classList.remove('visible');
+
+      try {
+        const resp = await fetch(`${API}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'recovery', token: recoveryToken, password })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        saveSession(await resp.json());
+        successEl.textContent = 'Password updated! Taking you to your training materials…';
+        successEl.classList.add('visible');
+        setTimeout(() => window.location.href = '/members.html', 1200);
+      } catch(e) {
+        errorEl.textContent = 'Something went wrong. The link may have expired — request a new one from the login page.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Update password';
       }
     });
 
