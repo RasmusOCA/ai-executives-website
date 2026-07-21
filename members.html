@@ -328,6 +328,7 @@
 
     document.getElementById('logout-btn').addEventListener('click', () => {
       localStorage.removeItem(SESSION_KEY);
+      // Keep aie_refresh so the user can sign back in without a new link
       window.location.href = '/login.html';
     });
   </script>

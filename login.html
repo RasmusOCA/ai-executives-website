@@ -27,7 +27,10 @@
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
+      opacity: 0;
+      transition: opacity 0.2s;
     }
+    body.ready { opacity: 1; }
     a { text-decoration: none; color: inherit; }
 
     .nav {
@@ -76,7 +79,6 @@
       line-height: 1.6; margin-bottom: 36px;
     }
 
-    /* Form */
     .form-group { margin-bottom: 16px; }
 
     .form-group label {
@@ -135,14 +137,6 @@
       text-align: center; line-height: 1.6;
     }
 
-    .forgot-link {
-      display: block; text-align: right;
-      font-size: 13px; color: rgba(255,255,255,0.35);
-      margin-top: 6px; cursor: pointer;
-      transition: color 0.2s;
-    }
-    .forgot-link:hover { color: rgba(255,255,255,0.7); }
-
     .footer {
       padding: 28px 40px;
       border-top: 1px solid rgba(255,255,255,0.08);
@@ -166,23 +160,21 @@
   </nav>
 
   <main>
-    <div class="login-card" id="login-view">
+
+    <!-- Login view: email-only magic link -->
+    <div class="login-card" id="login-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
       <h1>Welcome back.</h1>
-      <p class="login-card__sub">Sign in with your email to access your AI training materials.</p>
+      <p class="login-card__sub">Enter your email and we'll send you a secure login link.</p>
 
       <form id="login-form" novalidate>
         <div class="form-group">
           <label for="email">Email address</label>
           <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required>
         </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
-          <span class="forgot-link" id="forgot-link">Forgot password?</span>
-        </div>
-        <button type="submit" class="login-btn" id="login-btn">Sign in</button>
+        <button type="submit" class="login-btn" id="login-btn">Send login link</button>
         <div class="error-msg" id="login-error"></div>
+        <div class="success-msg" id="login-success"></div>
       </form>
 
       <p class="login-card__note">Don't have access yet? Contact Casper at<br>
@@ -190,41 +182,31 @@
       </p>
     </div>
 
-    <!-- Set password view (for invite & recovery tokens) -->
-    <div class="login-card" id="set-password-view" style="display:none;">
+    <!-- Invite view: activate account with password -->
+    <div class="login-card" id="invite-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
-      <h1 id="set-password-title">Set your password.</h1>
-      <p class="login-card__sub" id="set-password-sub">Choose a password to activate your account.</p>
+      <h1>Activate your account.</h1>
+      <p class="login-card__sub">Choose a password to complete your account setup.</p>
 
-      <form id="set-password-form" novalidate>
+      <form id="invite-form" novalidate>
         <div class="form-group">
-          <label for="new-password">New password</label>
-          <input type="password" id="new-password" placeholder="••••••••" autocomplete="new-password" required>
+          <label for="invite-password">Password</label>
+          <input type="password" id="invite-password" placeholder="••••••••" autocomplete="new-password" required>
         </div>
-        <button type="submit" class="login-btn" id="set-password-btn">Activate account</button>
-        <div class="error-msg" id="set-password-error"></div>
-        <div class="success-msg" id="set-password-success"></div>
+        <button type="submit" class="login-btn" id="invite-btn">Activate account</button>
+        <div class="error-msg" id="invite-error"></div>
+        <div class="success-msg" id="invite-success"></div>
       </form>
     </div>
 
-    <!-- Forgot password view -->
-    <div class="login-card" id="forgot-view" style="display:none;">
+    <!-- Processing view: shown while auto-handling recovery token -->
+    <div class="login-card" id="processing-view" style="display:none;">
       <span class="login-card__eyebrow">Member access</span>
-      <h1>Reset password.</h1>
-      <p class="login-card__sub">Enter your email and we'll send you a reset link.</p>
-
-      <form id="forgot-form" novalidate>
-        <div class="form-group">
-          <label for="reset-email">Email address</label>
-          <input type="email" id="reset-email" placeholder="your@email.com" autocomplete="email" required>
-        </div>
-        <button type="submit" class="login-btn" id="reset-btn">Send reset link</button>
-        <div class="error-msg" id="reset-error"></div>
-        <div class="success-msg" id="reset-success"></div>
-      </form>
-
-      <p class="login-card__note" style="cursor:pointer;" id="back-to-login">← Back to sign in</p>
+      <h1>Logging you in…</h1>
+      <p class="login-card__sub">Please wait a moment.</p>
+      <div class="error-msg" id="processing-error"></div>
     </div>
+
   </main>
 
   <footer class="footer">
@@ -234,13 +216,18 @@
   <script>
     const API = 'https://aiexecutives.dk/.netlify/identity';
     const SESSION_KEY = 'aie_session';
+    const REFRESH_KEY = 'aie_refresh';
 
     function saveSession(data) {
+      const email = data.user ? data.user.email : data.email;
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         access_token: data.access_token,
-        email: data.user ? data.user.email : data.email,
+        email,
         expires_at: Date.now() + (data.expires_in || 3600) * 1000
       }));
+      if (data.refresh_token) {
+        localStorage.setItem(REFRESH_KEY, JSON.stringify({ token: data.refresh_token, email }));
+      }
     }
 
     function getSession() {
@@ -251,132 +238,119 @@
       return null;
     }
 
+    function show(id) {
+      ['login-view','invite-view','processing-view'].forEach(v => {
+        document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
+      });
+    }
+
     const inviteToken = window.__tokens.invite;
     const recoveryToken = window.__tokens.recovery;
 
-    if (inviteToken || recoveryToken) {
-      document.getElementById('login-view').style.display = 'none';
-      document.getElementById('set-password-view').style.display = 'block';
-      if (recoveryToken) {
-        document.getElementById('set-password-title').textContent = 'Choose a new password.';
-        document.getElementById('set-password-sub').textContent = 'Enter a new password for your account.';
-        document.getElementById('set-password-btn').textContent = 'Update password';
+    async function init() {
+      if (inviteToken) {
+        show('invite-view');
+        document.body.classList.add('ready');
+        return;
       }
-    } else {
-      if (getSession()) window.location.href = '/members.html';
+
+      if (recoveryToken) {
+        show('processing-view');
+        document.body.classList.add('ready');
+        try {
+          const resp = await fetch(`${API}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'recovery', token: recoveryToken })
+          });
+          if (!resp.ok) throw new Error(await resp.text());
+          saveSession(await resp.json());
+          window.location.href = '/members.html';
+        } catch(e) {
+          document.getElementById('processing-error').textContent = 'This login link has expired. Please request a new one from the login page.';
+          document.getElementById('processing-error').classList.add('visible');
+          setTimeout(() => { show('login-view'); }, 3000);
+        }
+        return;
+      }
+
+      // No token — check existing session
+      if (getSession()) { window.location.href = '/members.html'; return; }
+
+      // Try refresh token for seamless re-login
+      const refreshStored = localStorage.getItem(REFRESH_KEY);
+      if (refreshStored) {
+        try {
+          const { token } = JSON.parse(refreshStored);
+          const resp = await fetch(`${API}/token?grant_type=refresh_token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: token })
+          });
+          if (resp.ok) {
+            saveSession(await resp.json());
+            window.location.href = '/members.html';
+            return;
+          }
+        } catch(e) {}
+        localStorage.removeItem(REFRESH_KEY);
+      }
+
+      show('login-view');
+      document.body.classList.add('ready');
     }
 
-    // Login
+    init();
+
+    // Invite form
+    document.getElementById('invite-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('invite-btn');
+      const errorEl = document.getElementById('invite-error');
+      const successEl = document.getElementById('invite-success');
+      const password = document.getElementById('invite-password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Activating…';
+      errorEl.classList.remove('visible');
+
+      try {
+        const resp = await fetch(`${API}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'signup', token: inviteToken, password })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const data = await resp.json();
+
+        // Explicitly persist password using the returned JWT
+        if (data.access_token) {
+          await fetch(`${API}/user`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${data.access_token}` },
+            body: JSON.stringify({ password })
+          });
+        }
+
+        saveSession(data);
+        successEl.textContent = 'Account activated! Taking you to your training materials…';
+        successEl.classList.add('visible');
+        setTimeout(() => window.location.href = '/members.html', 1200);
+      } catch(e) {
+        errorEl.textContent = 'Something went wrong. Please try again or contact Casper.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Activate account';
+      }
+    });
+
+    // Login form (magic link)
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
       const errorEl = document.getElementById('login-error');
+      const successEl = document.getElementById('login-success');
       const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-
-      btn.disabled = true;
-      btn.textContent = 'Signing in…';
-      errorEl.classList.remove('visible');
-
-      try {
-        const resp = await fetch(`${API}/token?grant_type=password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        if (!resp.ok) {
-          const errText = await resp.text();
-          console.error('Login error:', resp.status, errText);
-          throw new Error(errText);
-        }
-        saveSession(await resp.json());
-        window.location.href = '/members.html';
-      } catch (err) {
-        console.error('Login catch:', err.message);
-        errorEl.textContent = 'Incorrect email or password. Please try again.';
-        errorEl.classList.add('visible');
-        btn.disabled = false;
-        btn.textContent = 'Sign in';
-      }
-    });
-
-    // Set password (invite + recovery)
-    document.getElementById('set-password-form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const btn = document.getElementById('set-password-btn');
-      const errorEl = document.getElementById('set-password-error');
-      const successEl = document.getElementById('set-password-success');
-      const password = document.getElementById('new-password').value;
-
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      errorEl.classList.remove('visible');
-
-      try {
-        let data;
-        if (inviteToken) {
-          const verifyResp = await fetch(`${API}/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'signup', token: inviteToken, password })
-          });
-          if (!verifyResp.ok) {
-            const errText = await verifyResp.text();
-            console.error('Invite verify error:', verifyResp.status, errText);
-            throw new Error(errText);
-          }
-          const verifyData = await verifyResp.json();
-          const accessToken = verifyData.access_token;
-          if (accessToken) {
-            const pwResp = await fetch(`${API}/user`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-              body: JSON.stringify({ password })
-            });
-            console.log('Password persist status:', pwResp.status, await pwResp.text());
-          }
-          saveSession(verifyData);
-        } else if (recoveryToken) {
-          const resp = await fetch(`${API}/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'recovery', token: recoveryToken, password })
-          });
-          if (!resp.ok) {
-            const errText = await resp.text();
-            console.error('Recovery error:', resp.status, errText);
-            throw new Error(errText);
-          }
-          saveSession(await resp.json());
-        }
-        successEl.textContent = 'All done! Taking you to your training materials…';
-        successEl.classList.add('visible');
-        setTimeout(() => window.location.href = '/members.html', 1500);
-      } catch (err) {
-        errorEl.textContent = 'Something went wrong. Please try again or contact Casper.';
-        errorEl.classList.add('visible');
-        btn.disabled = false;
-        btn.textContent = inviteToken ? 'Activate account' : 'Update password';
-      }
-    });
-
-    // Forgot password
-    document.getElementById('forgot-link').addEventListener('click', () => {
-      document.getElementById('login-view').style.display = 'none';
-      document.getElementById('forgot-view').style.display = 'block';
-    });
-
-    document.getElementById('back-to-login').addEventListener('click', () => {
-      document.getElementById('forgot-view').style.display = 'none';
-      document.getElementById('login-view').style.display = 'block';
-    });
-
-    document.getElementById('forgot-form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const btn = document.getElementById('reset-btn');
-      const errorEl = document.getElementById('reset-error');
-      const successEl = document.getElementById('reset-success');
-      const email = document.getElementById('reset-email').value.trim();
 
       btn.disabled = true;
       btn.textContent = 'Sending…';
@@ -390,14 +364,14 @@
           body: JSON.stringify({ email })
         });
         if (!resp.ok) throw new Error();
-        successEl.textContent = 'Reset link sent. Check your inbox.';
+        successEl.textContent = 'Login link sent! Check your inbox and click the link to sign in.';
         successEl.classList.add('visible');
-        btn.textContent = 'Sent';
-      } catch (err) {
-        errorEl.textContent = 'Could not send reset link. Check the email address and try again.';
+        btn.textContent = 'Sent ✓';
+      } catch(e) {
+        errorEl.textContent = 'Could not send login link. Make sure you\'re using your registered email address.';
         errorEl.classList.add('visible');
         btn.disabled = false;
-        btn.textContent = 'Send reset link';
+        btn.textContent = 'Send login link';
       }
     });
   </script>
