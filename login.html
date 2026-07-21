@@ -375,34 +375,14 @@
       errorEl.classList.remove('visible');
 
       try {
+        // type=invite is the correct GoTrue type for invite acceptance (sets password properly)
         const verifyResp = await fetch(`${API}/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'signup', token: inviteToken, password })
+          body: JSON.stringify({ type: 'invite', token: inviteToken, password })
         });
         if (!verifyResp.ok) throw new Error(await verifyResp.text());
         const verifyData = await verifyResp.json();
-
-        // Persist password via authenticated PUT
-        if (verifyData.access_token) {
-          const pwResp = await fetch(`${API}/user`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${verifyData.access_token}` },
-            body: JSON.stringify({ password })
-          });
-          const pwBody = await pwResp.text();
-          console.log('PUT /user status:', pwResp.status, pwBody);
-
-          // Verify password login works immediately
-          const email = verifyData.user?.email || verifyData.email;
-          const testResp = await fetch(`${API}/token?grant_type=password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          });
-          const testBody = await testResp.text();
-          console.log('Password login test:', testResp.status, testBody);
-        }
 
         saveSession(verifyData);
         successEl.textContent = 'Account activated! Taking you to your training materials…';
