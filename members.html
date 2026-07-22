@@ -97,6 +97,22 @@
 
     .library__divider { border: none; border-top: 1px solid var(--border-grey); margin: 56px 0; }
 
+    /* Download */
+    .download-box {
+      background: var(--grey-light); border-radius: 10px; padding: 36px 40px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+      margin-bottom: 56px;
+    }
+    .download-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .download-box p { font-size: 14px; color: rgba(0,0,0,0.55); }
+    .download-box a {
+      display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px;
+      background: var(--black); color: var(--white); border-radius: 999px;
+      font-size: 14px; font-weight: 600; white-space: nowrap;
+      transition: opacity 0.2s; flex-shrink: 0;
+    }
+    .download-box a:hover { opacity: 0.8; }
+
     /* Support */
     .support-box {
       background: var(--grey-light); border-radius: 10px; padding: 36px 40px;
@@ -287,6 +303,16 @@
           </div>
         </div>
 
+      </div>
+
+      <hr class="library__divider">
+
+      <div class="download-box">
+        <div>
+          <h3>AI Executives Course Materials</h3>
+          <p>Download all course resources as a ZIP file.</p>
+        </div>
+        <a href="/course-materials.zip" download="AI Executives Course Materials.zip">Download course materials</a>
       </div>
 
       <hr class="library__divider">
